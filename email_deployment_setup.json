@@ -1,0 +1,398 @@
+{
+  "emailProcessingSetup": {
+    "azureResources": {
+      "communicationServices": {
+        "description": "Azure Communication Services for sending emails",
+        "template": {
+          "type": "Microsoft.Communication/communicationServices",
+          "apiVersion": "2023-03-31",
+          "name": "[variables('communicationServicesName')]",
+          "location": "global",
+          "properties": {
+            "dataLocation": "United States"
+          }
+        },
+        "emailDomain": {
+          "type": "Microsoft.Communication/emailServices/domains",
+          "apiVersion": "2023-03-31",
+          "name": "[concat(variables('emailServicesName'), '/AzureManagedDomain')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Communication/emailServices', variables('emailServicesName'))]"
+          ],
+          "properties": {
+            "domainManagement": "AzureManaged"
+          }
+        }
+      },
+      "serviceBus": {
+        "description": "Service Bus for email processing queue",
+        "template": {
+          "type": "Microsoft.ServiceBus/namespaces",
+          "apiVersion": "2022-10-01-preview",
+          "name": "[variables('serviceBusNamespace')]",
+          "location": "[parameters('location')]",
+          "sku": {
+            "name": "Basic"
+          },
+          "properties": {}
+        },
+        "queue": {
+          "type": "Microsoft.ServiceBus/namespaces/queues",
+          "apiVersion": "2022-10-01-preview",
+          "name": "[concat(variables('serviceBusNamespace'), '/email-processing')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespace'))]"
+          ],
+          "properties": {
+            "maxSizeInMegabytes": 1024,
+            "defaultMessageTimeToLive": "P14D",
+            "deadLetteringOnMessageExpiration": true
+          }
+        }
+      }
+    },
+    "environmentVariables": {
+      "COMMUNICATION_SERVICES_CONNECTION_STRING": "Endpoint=https://your-comm-service.communication.azure.com/;AccessKey=your-key",
+      "EMAIL_DOMAIN": "receipts.xeroflow.com",
+      "EMAIL_SENDER_ADDRESS": "noreply@receipts.xeroflow.com",
+      "EMAIL_WEBHOOK_SECRET": "your-webhook-secret-key",
+      "SERVICE_BUS_CONNECTION_STRING": "Endpoint=sb://your-namespace.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=your-key"
+    },
+    "dnsConfiguration": {
+      "description": "DNS setup for custom email domain",
+      "records": [
+        {
+          "type": "MX",
+          "name": "receipts.xeroflow.com",
+          "value": "receipts-xeroflow-com.mail.protection.outlook.com",
+          "priority": 10
+        },
+        {
+          "type": "TXT",
+          "name": "receipts.xeroflow.com",
+          "value": "v=spf1 include:spf.protection.outlook.com -all"
+        },
+        {
+          "type": "CNAME",
+          "name": "selector1._domainkey.receipts",
+          "value": "selector1-receipts-xeroflow-com._domainkey.xeroflow.onmicrosoft.com"
+        }
+      ]
+    },
+    "webhookProviders": {
+      "sendgrid": {
+        "description": "SendGrid webhook configuration",
+        "webhookUrl": "https://your-app.azurewebsites.net/webhook/email",
+        "settings": {
+          "eventTypes": ["processed", "delivered", "opened"],
+          "authentication": {
+            "type": "signature",
+            "secretKey": "your-webhook-secret"
+          }
+        }
+      },
+      "mailgun": {
+        "description": "Mailgun webhook configuration",
+        "webhookUrl": "https://your-app.azurewebsites.net/webhook/email",
+        "settings": {
+          "eventTypes": ["delivered", "opened", "failed"],
+          "authentication": {
+            "type": "signature",
+            "signingKey": "your-signing-key"
+          }
+        }
+      },
+      "office365": {
+        "description": "Office 365 mail flow rules",
+        "mailFlowRule": {
+          "name": "Forward Receipts to XeroFlow",
+          "conditions": [
+            "Sent to: receipts@yourcompany.com",
+            "Has attachment: true"
+          ],
+          "actions": [
+            "Forward to: tenant-id@receipts.xeroflow.com",
+            "Stop processing more rules: true"
+          ]
+        }
+      }
+    }
+  },
+  "setupInstructions": {
+    "step1": {
+      "title": "Deploy Azure Resources",
+      "commands": [
+        "# Add Communication Services to ARM template",
+        "# Deploy updated template",
+        "az deployment group create --resource-group rg-name --template-file updated-template.json"
+      ]
+    },
+    "step2": {
+      "title": "Configure DNS Records",
+      "description": "Add the following DNS records to your domain:",
+      "records": "See dnsConfiguration above"
+    },
+    "step3": {
+      "title": "Set Up Email Provider Webhook",
+      "options": [
+        {
+          "provider": "SendGrid",
+          "steps": [
+            "1. Go to SendGrid Dashboard > Settings > Mail Settings > Event Webhook",
+            "2. Set Post URL: https://your-app.azurewebsites.net/webhook/email",
+            "3. Select events: Processed, Delivered, Opened",
+            "4. Set HTTP Post URL to POST",
+            "5. Enable Signed Event Webhook",
+            "6. Copy webhook verification key to EMAIL_WEBHOOK_SECRET"
+          ]
+        },
+        {
+          "provider": "Mailgun",
+          "steps": [
+            "1. Go to Mailgun Dashboard > Webhooks",
+            "2. Add webhook URL: https://your-app.azurewebsites.net/webhook/email",
+            "3. Select events: delivered, opened, failed",
+            "4. Copy signing key to EMAIL_WEBHOOK_SECRET"
+          ]
+        },
+        {
+          "provider": "Office 365",
+          "steps": [
+            "1. Go to Exchange Admin Center > Mail flow > Rules",
+            "2. Create new rule: 'Forward receipts to XeroFlow'",
+            "3. Condition: 'The recipient is' receipts@yourcompany.com",
+            "4. Action: 'Forward the message to' tenant-specific address",
+            "5. Test with sample email"
+          ]
+        }
+      ]
+    },
+    "step4": {
+      "title": "Test Email Processing",
+      "testSteps": [
+        "1. Deploy updated application with email processing code",
+        "2. Create test tenant and get email address",
+        "3. Send test email with PDF attachment",
+        "4. Verify receipt appears in dashboard",
+        "5. Check Xero for created bill",
+        "6. Verify confirmation email received"
+      ]
+    }
+  },
+  "emailProviderComparison": {
+    "sendgrid": {
+      "pros": ["Excellent deliverability", "Easy webhook setup", "Good documentation"],
+      "cons": ["Cost for high volume", "Complex pricing"],
+      "bestFor": "Medium to large businesses",
+      "cost": "$14.95-$89.95/month"
+    },
+    "mailgun": {
+      "pros": ["Developer-friendly", "Good API", "Flexible pricing"],
+      "cons": ["Steeper learning curve", "Limited free tier"],
+      "bestFor": "Developer-focused businesses",
+      "cost": "$0.80/1000 emails"
+    },
+    "office365": {
+      "pros": ["Already have it", "Integrated with business email", "No extra cost"],
+      "cons": ["Limited webhook capabilities", "Requires mail flow rules"],
+      "bestFor": "Businesses already using Office 365",
+      "cost": "Included with existing subscription"
+    },
+    "azureCommunicationServices": {
+      "pros": ["Native Azure integration", "Good pricing", "Scalable"],
+      "cons": ["Newer service", "Limited advanced features"],
+      "bestFor": "Azure-native solutions",
+      "cost": "$0.25/1000 emails"
+    }
+  },
+  "securityConsiderations": {
+    "emailValidation": {
+      "senderAuthentication": "Verify sender is authorized for tenant",
+      "attachmentScanning": "Scan attachments for malware",
+      "sizeRestrictions": "Limit attachment size to prevent abuse",
+      "rateLimit": "Limit emails per sender per hour"
+    },
+    "dataProtection": {
+      "encryption": "Encrypt email content and attachments",
+      "retention": "Auto-delete processed emails after 30 days",
+      "access": "Log all email processing activities",
+      "compliance": "Ensure GDPR compliance for email data"
+    },
+    "webhookSecurity": {
+      "signatureVerification": "Always verify webhook signatures",
+      "httpsOnly": "Only accept HTTPS webhook calls",
+      "ipWhitelist": "Whitelist known provider IP ranges",
+      "secretRotation": "Regularly rotate webhook secrets"
+    }
+  },
+  "monitoringAndAlerting": {
+    "metrics": [
+      "Emails processed per hour",
+      "Processing success rate",
+      "Average processing time",
+      "Failed processing attempts",
+      "Storage usage for email attachments"
+    ],
+    "alerts": [
+      "High failure rate (>10%)",
+      "Processing queue backlog",
+      "Large attachment uploads",
+      "Unauthorized sender attempts",
+      "Service downtime or errors"
+    ],
+    "dashboards": {
+      "operationalMetrics": "Email processing volume, success rates, error types",
+      "businessMetrics": "Customer adoption, feature usage, cost per email",
+      "performanceMetrics": "Processing latency, queue depth, resource utilization"
+    }
+  },
+  "businessBenefits": {
+    "customerValue": {
+      "convenience": "Process receipts without logging into app",
+      "mobileOptimized": "Forward receipts directly from phone",
+      "bulkProcessing": "Send multiple receipts in one email",
+      "integration": "Works with existing email workflows"
+    },
+    "competitiveAdvantage": {
+      "uniqueFeature": "Most competitors don't offer email processing",
+      "marketDifferentiator": "Positions as most convenient solution",
+      "upsellOpportunity": "Premium feature for higher-tier plans",
+      "customerRetention": "Increases stickiness and reduces churn"
+    },
+    "revenueImpact": {
+      "pricingTier": "Email processing as premium feature (+$10-20/month)",
+      "adoption": "Expected 60%+ adoption rate among existing customers",
+      "newCustomers": "Attracts mobile-first small businesses",
+      "marketExpansion": "Appeals to less tech-savvy users"
+    }
+  },
+  "implementationTimeline": {
+    "week1": {
+      "tasks": [
+        "Deploy Azure Communication Services",
+        "Set up DNS records for custom domain",
+        "Implement email processing Azure Function",
+        "Create database schema for email mappings"
+      ],
+      "deliverables": ["Basic email infrastructure", "Database structure"]
+    },
+    "week2": {
+      "tasks": [
+        "Build web interface for email setup",
+        "Implement webhook endpoint",
+        "Add email processing to Flask app",
+        "Create confirmation/error email templates"
+      ],
+      "deliverables": ["Complete web interface", "Email templates"]
+    },
+    "week3": {
+      "tasks": [
+        "Integration testing with email providers",
+        "Security testing and validation",
+        "Performance testing with high volume",
+        "Documentation and user guides"
+      ],
+      "deliverables": ["Tested system", "User documentation"]
+    },
+    "week4": {
+      "tasks": [
+        "Beta testing with select customers",
+        "Bug fixes and optimizations",
+        "Monitoring and alerting setup",
+        "Production deployment"
+      ],
+      "deliverables": ["Production-ready feature", "Monitoring dashboard"]
+    }
+  },
+  "marketingStrategy": {
+    "launchCampaign": {
+      "announcement": "Email processing now available - process receipts directly from your inbox!",
+      "channels": ["In-app notifications", "Email newsletter", "Social media", "Blog post"],
+      "messaging": "Never log in to process receipts again - just forward and forget!",
+      "callToAction": "Set up email processing in under 2 minutes"
+    },
+    "contentMarketing": {
+      "blogPosts": [
+        "How to process receipts without lifting a finger",
+        "Email receipt processing: The future of expense management",
+        "5 ways email processing saves small businesses time"
+      ],
+      "videoTutorials": [
+        "Setting up email receipt processing",
+        "Mobile email forwarding best practices",
+        "Bulk receipt processing with email"
+      ],
+      "caseStudies": [
+        "Small business saves 5 hours/week with email processing",
+        "Mobile-first contractor increases efficiency 300%"
+      ]
+    },
+    "targetAudiences": {
+      "mobileUsers": "Busy professionals who primarily use mobile devices",
+      "smallBusinessOwners": "Solo entrepreneurs and small business owners",
+      "fieldWorkers": "Contractors, sales reps, consultants on the go",
+      "techSkeptical": "Users who prefer email over apps"
+    }
+  },
+  "scalingConsiderations": {
+    "volumeProjections": {
+      "month1": "100 emails/day across all tenants",
+      "month6": "1,000 emails/day",
+      "month12": "10,000 emails/day",
+      "optimizations": ["Batch processing", "Queue management", "Load balancing"]
+    },
+    "costOptimization": {
+      "storage": "Implement lifecycle policies for attachment cleanup",
+      "processing": "Use consumption-based Azure Functions pricing",
+      "email": "Choose provider based on volume tiers",
+      "monitoring": "Set up cost alerts and budgets"
+    },
+    "performanceOptimization": {
+      "async": "All email processing should be asynchronous",
+      "queues": "Use Service Bus for reliable message processing",
+      "scaling": "Auto-scale Functions based on queue depth",
+      "caching": "Cache tenant settings and email mappings"
+    }
+  },
+  "futureEnhancements": {
+    "aiImprovements": {
+      "smartCategorization": "AI-powered expense category detection",
+      "duplicateDetection": "Prevent duplicate processing of forwarded emails",
+      "intelligentParsing": "Better extraction from email body text",
+      "contextualProcessing": "Use email subject/sender for better categorization"
+    },
+    "integrationExpansions": {
+      "slackIntegration": "Process receipts from Slack attachments",
+      "teamsIntegration": "Microsoft Teams file sharing integration",
+      "dropboxIntegration": "Monitor Dropbox folders for new receipts",
+      "googleDriveIntegration": "Process receipts from Google Drive uploads"
+    },
+    "advancedFeatures": {
+      "bulkEmailProcessing": "Handle ZIP files with multiple receipts",
+      "emailRules": "Custom rules for different types of receipts",
+      "approvalWorkflows": "Email-based approval for large expenses",
+      "multiLanguageSupport": "Process receipts in multiple languages"
+    }
+  },
+  "supportDocumentation": {
+    "userGuides": [
+      "Setting up email receipt processing",
+      "Troubleshooting email delivery issues",
+      "Managing authorized senders",
+      "Understanding confirmation emails"
+    ],
+    "faqTopics": [
+      "Why didn't my email get processed?",
+      "Can I forward from any email address?",
+      "What file formats are supported?",
+      "How long does processing take?",
+      "Is my email data secure?"
+    ],
+    "troubleshootingGuide": {
+      "emailNotProcessed": "Check sender authorization, file format, attachment size",
+      "slowProcessing": "High volume, large files, or system maintenance",
+      "wrongMerchant": "Image quality, receipt format, manual correction needed",
+      "duplicateReceipts": "Email forwarded multiple times, use unique subject lines"
+    }
+  }
+}

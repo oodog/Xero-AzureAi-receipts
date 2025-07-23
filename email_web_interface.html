@@ -1,0 +1,383 @@
+<!-- templates/email_setup.html -->
+{% extends "base.html" %}
+
+{% block title %}Email Setup - XeroFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-envelope text-3xl text-primary-600 mr-4"></i>
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Email Receipt Processing</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Forward receipts directly to your unique email address for automatic processing
+                    </p>
+                </div>
+            </div>
+
+            <!-- Email Address Display -->
+            <div class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900 mb-2">Your Receipt Email Address</h4>
+                        <div class="flex items-center space-x-3">
+                            <code id="receiptEmail" class="bg-white px-4 py-2 rounded-md text-primary-600 font-mono text-lg border">
+                                {{ tenant_email or 'Loading...' }}
+                            </code>
+                            <button onclick="copyEmail()" 
+                                    class="inline-flex items-center px-3 py-2 border border-primary-300 shadow-sm text-sm font-medium rounded-md text-primary-700 bg-white hover:bg-primary-50">
+                                <i class="fas fa-copy mr-1"></i>Copy
+                            </button>
+                        </div>
+                        <p class="mt-2 text-sm text-gray-600">
+                            Forward any email with receipt attachments to this address
+                        </p>
+                    </div>
+                    <div class="hidden sm:block">
+                        <i class="fas fa-paper-plane text-6xl text-primary-200"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-primary-100 mb-4">
+                        <i class="fas fa-share text-2xl text-primary-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">1. Forward</h3>
+                    <p class="text-sm text-gray-500">
+                        Forward any email with receipt attachments to your unique address
+                    </p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-primary-100 mb-4">
+                        <i class="fas fa-robot text-2xl text-primary-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">2. Process</h3>
+                    <p class="text-sm text-gray-500">
+                        Our AI automatically extracts merchant, amount, and date information
+                    </p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-primary-100 mb-4">
+                        <i class="fas fa-sync text-2xl text-primary-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">3. Sync</h3>
+                    <p class="text-sm text-gray-500">
+                        Bills are automatically created in Xero with proper categorization
+                    </p>
+                </div>
+            </div>
+
+            <!-- Supported File Types -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h4 class="text-md font-medium text-gray-900 mb-3">Supported File Types</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-file-pdf text-red-500"></i>
+                        <span class="text-sm text-gray-700">PDF</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-file-image text-blue-500"></i>
+                        <span class="text-sm text-gray-700">JPG/PNG</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-file-word text-blue-600"></i>
+                        <span class="text-sm text-gray-700">DOCX</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-file-excel text-green-600"></i>
+                        <span class="text-sm text-gray-700">XLSX</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Settings -->
+            <div class="border-t border-gray-200 pt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Email Processing Settings</h4>
+                
+                <form id="emailSettingsForm" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label for="emailProcessingEnabled" class="text-sm font-medium text-gray-700">
+                                Enable Email Processing
+                            </label>
+                            <p class="text-sm text-gray-500">Allow receipts to be processed from forwarded emails</p>
+                        </div>
+                        <input id="emailProcessingEnabled" name="emailProcessingEnabled" type="checkbox" 
+                               {{ 'checked' if tenant.settings.emailProcessingEnabled else '' }}
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label for="confirmationEmails" class="text-sm font-medium text-gray-700">
+                                Send Confirmation Emails
+                            </label>
+                            <p class="text-sm text-gray-500">Email confirmation when receipts are successfully processed</p>
+                        </div>
+                        <input id="confirmationEmails" name="confirmationEmails" type="checkbox" checked
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label for="errorNotifications" class="text-sm font-medium text-gray-700">
+                                Error Notifications
+                            </label>
+                            <p class="text-sm text-gray-500">Email notifications when processing fails</p>
+                        </div>
+                        <input id="errorNotifications" name="errorNotifications" type="checkbox" checked
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    </div>
+                    
+                    <!-- Authorized Senders -->
+                    <div>
+                        <label for="authorizedSenders" class="block text-sm font-medium text-gray-700 mb-2">
+                            Authorized Senders
+                        </label>
+                        <textarea id="authorizedSenders" name="authorizedSenders" rows="3"
+                                  placeholder="Enter email addresses (one per line) that are allowed to send receipts. Leave empty to allow all team members."
+                                  class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">{{ authorized_senders or '' }}</textarea>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Leave empty to allow all team members, or specify email addresses that can send receipts
+                        </p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="testEmail()"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-paper-plane mr-2"></i>Send Test Email
+                        </button>
+                        
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+                            <i class="fas fa-save mr-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Email Examples -->
+            <div class="border-t border-gray-200 pt-6 mt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Email Examples</h4>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h5 class="font-medium text-gray-900 mb-2">Example Email Forward:</h5>
+                    <div class="bg-white rounded border p-3 font-mono text-sm">
+                        <div class="mb-2"><strong>To:</strong> <span class="text-primary-600">{{ tenant_email or 'your-receipts@receipts.xeroflow.com' }}</span></div>
+                        <div class="mb-2"><strong>Subject:</strong> Receipt from Coffee Shop</div>
+                        <div class="mb-2"><strong>Body:</strong> Here's my coffee receipt from this morning</div>
+                        <div><strong>Attachment:</strong> 📎 coffee-receipt.pdf</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 bg-blue-50 rounded-lg p-4">
+                    <h5 class="font-medium text-blue-900 mb-2">💡 Pro Tips:</h5>
+                    <ul class="text-sm text-blue-700 space-y-1">
+                        <li>• Add suppliers/vendors to your phone contacts for easy forwarding</li>
+                        <li>• Set up email rules to auto-forward from specific senders</li>
+                        <li>• Include meaningful subject lines to help with categorization</li>
+                        <li>• Multiple attachments in one email will all be processed</li>
+                        <li>• Screenshots and photos work just as well as PDFs</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Email Receipts -->
+            <div class="border-t border-gray-200 pt-6 mt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Recent Email Receipts</h4>
+                
+                <div id="emailReceiptsTable">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                        <p class="mt-2 text-sm text-gray-500">Loading email receipts...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyEmail() {
+    const emailElement = document.getElementById('receiptEmail');
+    const email = emailElement.textContent;
+    
+    navigator.clipboard.writeText(email).then(function() {
+        // Show success feedback
+        const originalText = emailElement.textContent;
+        emailElement.textContent = 'Copied!';
+        emailElement.classList.add('bg-green-100', 'text-green-700');
+        
+        setTimeout(() => {
+            emailElement.textContent = originalText;
+            emailElement.classList.remove('bg-green-100', 'text-green-700');
+        }, 2000);
+    }).catch(function() {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = email;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('Email address copied to clipboard!');
+    });
+}
+
+function testEmail() {
+    const email = document.getElementById('receiptEmail').textContent;
+    
+    fetch('/api/email/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emailAddress: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Test email sent! Check your inbox for confirmation.');
+        } else {
+            alert('Error sending test email: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error sending test email. Please try again.');
+    });
+}
+
+document.getElementById('emailSettingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const authorizedSenders = formData.get('authorizedSenders')
+        .split('\n')
+        .map(email => email.trim())
+        .filter(email => email.length > 0);
+    
+    const data = {
+        emailProcessingEnabled: formData.has('emailProcessingEnabled'),
+        confirmationEmails: formData.has('confirmationEmails'),
+        errorNotifications: formData.has('errorNotifications'),
+        authorizedSenders: authorizedSenders
+    };
+    
+    fetch('/api/email/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Email settings saved successfully!');
+        } else {
+            alert('Error saving settings: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error saving settings. Please try again.');
+    });
+});
+
+function loadEmailReceipts() {
+    fetch('/api/receipts?source=email&limit=10')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayEmailReceipts(data.receipts);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading email receipts:', error);
+        });
+}
+
+function displayEmailReceipts(receipts) {
+    const container = document.getElementById('emailReceiptsTable');
+    
+    if (receipts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-envelope-open text-4xl text-gray-300"></i>
+                <p class="mt-2 text-sm text-gray-500">No email receipts yet. Forward your first receipt to get started!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const table = `
+        <div class="overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${receipts.map(receipt => `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="flex items-center">
+                                    <i class="fas fa-envelope text-gray-400 mr-2"></i>
+                                    ${receipt.senderEmail || 'Unknown'}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                                ${receipt.emailSubject || 'No Subject'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                ${receipt.merchant || 'Processing...'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${receipt.total ? ' + receipt.total.toFixed(2) : 'Processing...'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    ${receipt.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                      receipt.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : 
+                                      receipt.status === 'uploaded' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-red-100 text-red-800'}">
+                                    ${receipt.status}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${new Date(receipt.createdAt).toLocaleDateString()}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = table;
+}
+
+// Load email receipts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadEmailReceipts();
+    
+    // Refresh every 30 seconds
+    setInterval(loadEmailReceipts, 30000);
+});
+</script>
+{% endblock %}
