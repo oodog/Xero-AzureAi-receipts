@@ -1,0 +1,744 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}XeroFlow - Automated Receipt Processing{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    {% if session.user_id %}
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center">
+                        <i class="fas fa-receipt text-primary-600 text-2xl mr-3"></i>
+                        <span class="font-bold text-xl text-gray-900">XeroFlow</span>
+                    </a>
+                    
+                    <div class="ml-10 flex space-x-8">
+                        <a href="{{ url_for('dashboard') }}" 
+                           class="border-transparent text-gray-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('upload') }}" 
+                           class="border-transparent text-gray-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-cloud-upload-alt mr-2"></i>Upload
+                        </a>
+                        {% if session.user_role == 'admin' %}
+                        <a href="{{ url_for('setup') }}" 
+                           class="border-transparent text-gray-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-cog mr-2"></i>Settings
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" 
+                                onclick="toggleDropdown()">
+                            <i class="fas fa-user-circle text-2xl text-gray-400"></i>
+                            <span class="ml-2 text-gray-700">{{ session.get('user_email', 'User') }}</span>
+                            <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+                        </button>
+                        
+                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                            <a href="{{ url_for('logout') }}" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Sign out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% elif category == 'success' %}bg-green-50 text-green-700 border border-green-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- JavaScript -->
+    <script>
+        function toggleDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const button = event.target.closest('button');
+            
+            if (!button || !button.onclick) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="relative bg-white overflow-hidden">
+    <!-- Hero Section -->
+    <div class="max-w-7xl mx-auto">
+        <div class="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+            <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                <div class="sm:text-center lg:text-left">
+                    <h1 class="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+                        <span class="block xl:inline">Automate your</span>
+                        <span class="block text-primary-600 xl:inline">receipt processing</span>
+                    </h1>
+                    <p class="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                        Upload receipts, extract data automatically with AI, and sync directly to Xero. 
+                        Save hours of manual data entry every week.
+                    </p>
+                    <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                        <div class="rounded-md shadow">
+                            <a href="{{ url_for('signup') }}" 
+                               class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10">
+                                Get started free
+                            </a>
+                        </div>
+                        <div class="mt-3 sm:mt-0 sm:ml-3">
+                            <a href="#features" 
+                               class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 md:py-4 md:text-lg md:px-10">
+                                Learn more
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
+        <img class="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full" 
+             src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80" 
+             alt="Receipt processing automation">
+    </div>
+</div>
+
+<!-- Features Section -->
+<div id="features" class="py-12 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="lg:text-center">
+            <h2 class="text-base text-primary-600 font-semibold tracking-wide uppercase">Features</h2>
+            <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                Everything you need for receipt automation
+            </p>
+        </div>
+
+        <div class="mt-10">
+            <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
+                <div class="relative">
+                    <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
+                        <i class="fas fa-camera text-xl"></i>
+                    </div>
+                    <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Smart Capture</p>
+                    <p class="mt-2 ml-16 text-base text-gray-500">
+                        Take photos or upload receipts from any device. Our AI automatically extracts all relevant data.
+                    </p>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
+                        <i class="fas fa-sync text-xl"></i>
+                    </div>
+                    <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Xero Integration</p>
+                    <p class="mt-2 ml-16 text-base text-gray-500">
+                        Automatically create bills in Xero with proper line items, GST, and supplier details.
+                    </p>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
+                        <i class="fas fa-credit-card text-xl"></i>
+                    </div>
+                    <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Auto Payments</p>
+                    <p class="mt-2 ml-16 text-base text-gray-500">
+                        Optionally auto-pay bills on their due date from your designated bank account.
+                    </p>
+                </div>
+
+                <div class="relative">
+                    <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                    <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Secure & Compliant</p>
+                    <p class="mt-2 ml-16 text-base text-gray-500">
+                        Bank-level security with Azure infrastructure. Your data is encrypted and protected.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="bg-primary-700">
+    <div class="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
+            <span class="block">Ready to automate?</span>
+            <span class="block">Start your free trial today.</span>
+        </h2>
+        <p class="mt-4 text-lg leading-6 text-primary-200">
+            No credit card required. Setup takes less than 5 minutes.
+        </p>
+        <a href="{{ url_for('signup') }}" 
+           class="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-primary-600 bg-white hover:bg-primary-50 sm:w-auto">
+            Get started free
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+<!-- templates/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard - XeroFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="md:flex md:items-center md:justify-between">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                Dashboard
+            </h2>
+            <p class="mt-1 text-sm text-gray-500">
+                Welcome back! Here's what's happening with your receipts.
+            </p>
+        </div>
+        <div class="mt-4 flex md:mt-0 md:ml-4">
+            <a href="{{ url_for('upload') }}" 
+               class="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <i class="fas fa-plus mr-2"></i>
+                Upload Receipt
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-receipt text-2xl text-gray-400"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Receipts</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ tenant.usage.receiptsProcessed or 0 }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock text-2xl text-gray-400"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="pendingCount">-</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-2xl text-green-400"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">This Month</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="monthlyCount">-</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-dollar-sign text-2xl text-green-400"></i>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Value</dt>
+                            <dd class="text-lg font-medium text-gray-900" id="totalValue">-</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Upload -->
+    <div class="mt-8 bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Quick Upload</h3>
+            <div class="mt-2 max-w-xl text-sm text-gray-500">
+                <p>Upload receipts directly from your device or take a photo.</p>
+            </div>
+            <div class="mt-5">
+                <div class="flex space-x-3">
+                    <button onclick="takePhoto()" 
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-camera mr-2"></i>Take Photo
+                    </button>
+                    <button onclick="chooseFile()" 
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-folder-open mr-2"></i>Choose File
+                    </button>
+                </div>
+                
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(event, true)">
+                <input type="file" id="fileInput" accept="image/*,.pdf" style="display: none;" onchange="handleFileSelect(event, false)">
+                
+                <div id="uploadProgress" class="mt-4 hidden">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div id="progressBar" class="bg-primary-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="mt-2 text-sm text-gray-600">Uploading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Receipts -->
+    <div class="mt-8">
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Receipts</h3>
+                <p class="mt-1 text-sm text-gray-500">Your latest processed receipts</p>
+            </div>
+            <div class="px-4 py-5 sm:p-6">
+                <div id="receiptsTable">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                        <p class="mt-2 text-sm text-gray-500">Loading receipts...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SAS_URLS = {{ sas_urls | tojsonfilter }};
+
+function takePhoto() {
+    document.getElementById('cameraInput').click();
+}
+
+function chooseFile() {
+    document.getElementById('fileInput').click();
+}
+
+function handleFileSelect(event, isCamera) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    uploadFile(file, isCamera);
+}
+
+function uploadFile(file, isCamera) {
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    uploadProgress.classList.remove('hidden');
+    
+    // Generate filename
+    let filename;
+    if (isCamera) {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8);
+        const ext = file.name.split('.').pop();
+        filename = `${timestamp}-${random}.${ext}`;
+    } else {
+        filename = file.name;
+    }
+    
+    // Upload to Azure Storage
+    const uploadUrl = `${SAS_URLS.uploads_sas_url.split('?')[0]}/${encodeURIComponent(filename)}?${SAS_URLS.uploads_sas_url.split('?')[1]}`;
+    
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = `Uploading... ${Math.round(percent)}%`;
+        }
+    };
+    
+    xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+            progressText.textContent = 'Upload complete! Processing...';
+            setTimeout(() => {
+                uploadProgress.classList.add('hidden');
+                loadReceipts();
+                loadStats();
+            }, 2000);
+        } else {
+            progressText.textContent = 'Upload failed. Please try again.';
+            setTimeout(() => uploadProgress.classList.add('hidden'), 3000);
+        }
+    };
+    
+    xhr.onerror = function() {
+        progressText.textContent = 'Upload failed. Please try again.';
+        setTimeout(() => uploadProgress.classList.add('hidden'), 3000);
+    };
+    
+    xhr.open('PUT', uploadUrl, true);
+    xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+    if (file.type) {
+        xhr.setRequestHeader('Content-Type', file.type);
+    }
+    
+    xhr.send(file);
+}
+
+function loadReceipts() {
+    fetch('/api/receipts?limit=10')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayReceipts(data.receipts);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading receipts:', error);
+        });
+}
+
+function displayReceipts(receipts) {
+    const container = document.getElementById('receiptsTable');
+    
+    if (receipts.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-receipt text-4xl text-gray-300"></i>
+                <p class="mt-2 text-sm text-gray-500">No receipts yet. Upload your first receipt to get started!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const table = `
+        <div class="overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Xero</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${receipts.map(receipt => `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                ${receipt.merchant}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${new Date(receipt.date).toLocaleDateString()}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${receipt.total.toFixed(2)}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    ${receipt.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                                      receipt.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : 
+                                      'bg-red-100 text-red-800'}">
+                                    ${receipt.status}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${receipt.xeroInvoiceId ? 
+                                    `<i class="fas fa-check-circle text-green-500"></i> Synced` :
+                                    `<i class="fas fa-clock text-yellow-500"></i> Pending`
+                                }
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = table;
+}
+
+function loadStats() {
+    fetch('/api/processing/status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('pendingCount').textContent = data.status.pendingUploads;
+            }
+        });
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadReceipts();
+    loadStats();
+    
+    // Refresh every 30 seconds
+    setInterval(() => {
+        loadReceipts();
+        loadStats();
+    }, 30000);
+});
+</script>
+{% endblock %}
+
+<!-- templates/setup.html -->
+{% extends "base.html" %}
+
+{% block title %}Setup - XeroFlow{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Setup Your Integration</h3>
+            <div class="mt-2 max-w-xl text-sm text-gray-500">
+                <p>Configure your Xero integration to start processing receipts automatically.</p>
+            </div>
+            
+            <!-- Xero Configuration -->
+            <div class="mt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Xero OAuth Configuration</h4>
+                
+                {% if not xero_config %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Xero Integration Required</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>You need to configure Xero OAuth to start processing receipts.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form id="xeroConfigForm" class="space-y-4">
+                    <div>
+                        <label for="clientId" class="block text-sm font-medium text-gray-700">Client ID</label>
+                        <input type="text" name="clientId" id="clientId" 
+                               value="{{ xero_config.clientId if xero_config else '' }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                               placeholder="Your Xero app Client ID">
+                    </div>
+                    
+                    <div>
+                        <label for="clientSecret" class="block text-sm font-medium text-gray-700">Client Secret</label>
+                        <input type="password" name="clientSecret" id="clientSecret"
+                               value="{{ xero_config.clientSecret if xero_config else '' }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                               placeholder="Your Xero app Client Secret">
+                    </div>
+                    
+                    <div>
+                        <label for="redirectUri" class="block text-sm font-medium text-gray-700">Redirect URI</label>
+                        <input type="url" name="redirectUri" id="redirectUri"
+                               value="{{ xero_config.redirectUri if xero_config else request.url_root + 'auth/xero/callback' }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                        <p class="mt-1 text-sm text-gray-500">Add this URL to your Xero app configuration</p>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Save Configuration
+                        </button>
+                        
+                        {% if xero_config %}
+                        <button type="button" onclick="startXeroAuth()"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <i class="fas fa-link mr-2"></i>Connect to Xero
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Settings -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Processing Settings</h4>
+                
+                <form id="settingsForm" class="space-y-4">
+                    <div class="flex items-center">
+                        <input id="processingEnabled" name="processingEnabled" type="checkbox" 
+                               {{ 'checked' if tenant.settings.processingEnabled else '' }}
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="processingEnabled" class="ml-2 block text-sm text-gray-900">
+                            Enable automatic receipt processing
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input id="autoPayEnabled" name="autoPayEnabled" type="checkbox" 
+                               {{ 'checked' if tenant.settings.autoPayEnabled else '' }}
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="autoPayEnabled" class="ml-2 block text-sm text-gray-900">
+                            Enable automatic bill payments
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input id="notificationsEnabled" name="notificationsEnabled" type="checkbox" 
+                               {{ 'checked' if tenant.settings.notificationsEnabled else '' }}
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="notificationsEnabled" class="ml-2 block text-sm text-gray-900">
+                            Enable email notifications
+                        </label>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('xeroConfigForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch('/api/xero/config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Xero configuration saved successfully!');
+            location.reload();
+        } else {
+            alert('Error saving configuration: ' + data.message);
+        }
+    });
+});
+
+document.getElementById('settingsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        processingEnabled: formData.has('processingEnabled'),
+        autoPayEnabled: formData.has('autoPayEnabled'),
+        notificationsEnabled: formData.has('notificationsEnabled')
+    };
+    
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Settings saved successfully!');
+        } else {
+            alert('Error saving settings: ' + data.message);
+        }
+    });
+});
+
+function startXeroAuth() {
+    fetch('/api/xero/auth')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.open(data.authUrl, '_blank', 'width=600,height=600');
+            } else {
+                alert('Error starting Xero authentication: ' + data.message);
+            }
+        });
+}
+</script>
+{% endblock %}
