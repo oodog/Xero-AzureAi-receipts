@@ -15,7 +15,7 @@ XeroFlow is a comprehensive SaaS solution that automates receipt processing from
 
 ```bash
 # Clone the repository
-git clone <your-repo>
+git clone(https://github.com/oodog/Xero-AzureAi-receipts)
 cd xeroflow
 
 # Make deployment script executable
