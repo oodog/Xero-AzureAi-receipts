@@ -4,6 +4,7 @@ XeroFlow - Automated Receipt Processing SaaS
 Main Flask Web Application (revised)
 - Fixes SAS generation with AAD (user delegation SAS) and fallback to account key
 - Registers learning/suggestion blueprint
+- Registers email ingestion blueprint (Microsoft Graph)
 - Keeps your existing Cosmos/Key Vault/AAD setup
 """
 
@@ -32,6 +33,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 # NEW: learning/suggestions blueprint
 from blueprints.receipts import bp as receipts_bp
+# NEW: email ingestion blueprint
+from email_flask_routes import bp_email as email_bp  # <— add this import
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -302,8 +305,9 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Register new API blueprint (learning, auto-fill, account codes)
+# Register API blueprints
 app.register_blueprint(receipts_bp)
+app.register_blueprint(email_bp)  # <— NEW: email ingestion routes (/email/*)
 
 # Routes
 @app.route('/')
