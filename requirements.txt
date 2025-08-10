@@ -1,0 +1,15 @@
+flask>=2.3
+gunicorn>=21
+python-dotenv>=1.0
+azure-storage-blob>=12.17
+azure-ai-documentintelligence==1.0.2
+azure-cosmos>=4.5
+azure-keyvault-secrets>=4.7
+azure-identity>=1.14
+azure-functions>=1.18
+authlib>=1.2
+flask-session>=0.5
+cryptography>=41
+requests>=2.31
+pillow>=10
+python-dateutil>=2.8
