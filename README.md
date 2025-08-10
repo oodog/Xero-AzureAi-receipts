@@ -11,6 +11,11 @@ XeroFlow is a comprehensive SaaS solution that automates receipt processing from
 - Azure CLI installed
 - Domain name (optional, for custom domain)
 
+### Quick install 
+```bash
+#oneline install
+curl -sS https://raw.githubusercontent.com/oodog/Xero-AzureAi-receipts/refs/heads/Update/scripts/install.sh | bash
+
 ### 1. Clone and Deploy Infrastructure
 
 ```bash
